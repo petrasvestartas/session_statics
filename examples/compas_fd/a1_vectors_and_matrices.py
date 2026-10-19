@@ -26,7 +26,9 @@ for name, values in [("u", u), ("U = diag(u)", U), ("C", C), ("C^t", Ct), ("U @ 
     session.add_matrix(matrix)
     session.set_xform(matrix.guid, Xform.translation(x, 0.0, 0.0))
     x += matrix.cols + 1.0
-session.pb_dump(Path(__file__).resolve().parents[2] / "data" / "output" / "view_session_statics.pb")
+output = Path(__file__).resolve().parents[2] / "data" / "output"
+output.mkdir(parents=True, exist_ok=True)
+session.pb_dump(output / "view_session_statics.pb")
 
 """
 |||||||| DESCRIPTION ||||||||
