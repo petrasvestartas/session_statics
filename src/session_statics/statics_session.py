@@ -1,4 +1,4 @@
-"""A session that also writes its viewer manifest: texts, the opening view and live reload."""
+"""A session that also writes its viewer manifest: texts, the opening view, the floor grid and live reload."""
 
 import json
 from pathlib import Path
@@ -11,11 +11,20 @@ from .matrix_plot import MatrixPlot
 class StaticsSession(Session):
     """A session named after its viewer scene, view_<name>; matrices added left to right with a cell of space between."""
 
-    def __init__(self, name: str = "session_statics", title: str = "", view: str = "top", live: bool = True, gap: float = 1.0):
+    def __init__(
+        self,
+        name: str = "session_statics",
+        title: str = "",
+        view: str = "top",
+        live: bool = True,
+        grid: bool = False,
+        gap: float = 1.0,
+    ):
         super().__init__(name)
         self.title = title or name
         self.view = view
         self.live = live
+        self.grid = grid
         self.gap = gap
         self.texts: list[dict] = []
         self.next_x = 0.0
@@ -39,6 +48,7 @@ class StaticsSession(Session):
             "name": self.title,
             "live": self.live,
             "view": self.view,
+            "grid": self.grid,
             "items": [{"file": f"pb/view_{self.name}.pb", "name": self.title, "at": [0, 0, 0]}],
             "texts": self.texts,
         }

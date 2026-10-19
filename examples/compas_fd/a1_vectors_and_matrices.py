@@ -50,9 +50,9 @@ print(f"wrote {session.dump(Path(__file__).resolve().parents[2] / 'data' / 'outp
 Step A.1 of the force density method (Schek 1974, section 1.4; compas_fd note, Part A): the
 notation alone. A vector u, its diagonal matrix U = diag(u), a branch-node style matrix C and its
 transpose C^t, and the products U @ u and C @ u, printed with a dot for every zero and drawn side
-by side by StaticsSession.add_matrix with its defaults: a heatmap per matrix, cells from BRG navy at the
-smallest entry to BRG pink at the largest, grey where nothing is set, black edges, every value in black
-at the centre of its cell and the title above, opened from the top and reloaded live.
+by side by StaticsSession.add_matrix with its defaults: a heatmap per matrix, cells from vivid BRG navy at
+the smallest entry to vivid BRG pink at the largest, grey where nothing is set, black edges, every value
+in white at the centre of its cell and the title above in black, opened from the top and reloaded live.
 
 |||||||| DIRECTORY ||||||||
 cd session/session_statics

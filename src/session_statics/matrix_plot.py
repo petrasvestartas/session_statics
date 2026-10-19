@@ -3,11 +3,10 @@
 import numpy as np
 from session_py import Color, Mesh, Point
 
-# BRG Equilibrium palette: blue for the minimum, pink for the maximum, grey for zero; the blue is BRG navy #0b1957
-# lightened toward the palette's own light navy #bdbfe8, two thirds of the way, so black text reads on it
-BRG_BLUE = Color(0x7F / 255, 0x86 / 255, 0xB5 / 255)
-BRG_PINK = Color(0xFA / 255, 0x9E / 255, 0xBC / 255)
-BRG_ZERO = Color(0xE4 / 255, 0xE4 / 255, 0xE7 / 255)
+# BRG Equilibrium palette, the vivid pair: navy for the minimum, pink for the maximum, the darker grey for zero
+BRG_BLUE = Color(0x0B / 255, 0x19 / 255, 0x57 / 255)
+BRG_PINK = Color(0xCE / 255, 0x40 / 255, 0x95 / 255)
+BRG_ZERO = Color(0xB9 / 255, 0xB9 / 255, 0xBD / 255)
 
 # Noto Sans, the viewer's font: advance widths in em, and the digits' middle below the line box top
 ADVANCE = {".": 0.268, "-": 0.322, "e": 0.561, "+": 0.572}
@@ -27,7 +26,8 @@ class MatrixPlot:
         min_color: Color = BRG_BLUE,
         max_color: Color = BRG_PINK,
         zero_color: Color = BRG_ZERO,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.white(),
+        title_color: Color = Color.black(),
         text_height: float = 0.3,
         title_height: float = 0.35,
     ):
@@ -39,6 +39,7 @@ class MatrixPlot:
         self.max_color = max_color
         self.zero_color = zero_color
         self.text_color = text_color
+        self.title_color = title_color
         self.text_height = text_height
         self.title_height = title_height
 
@@ -98,6 +99,7 @@ class MatrixPlot:
     def _compute_texts(self) -> list[dict]:
         """The viewer manifest texts: values centred on their cells, the title above."""
         ink = [round(self.text_color.r * 255), round(self.text_color.g * 255), round(self.text_color.b * 255), 255]
+        title_ink = [round(self.title_color.r * 255), round(self.title_color.g * 255), round(self.title_color.b * 255), 255]
         height = self.text_height * self.cell
         texts = []
 
@@ -107,7 +109,7 @@ class MatrixPlot:
                 "at": [self.origin[0] - 0.5 * self.cell, self.origin[1] + 1.2 * self.cell, self.origin[2]],
                 "height": self.title_height * self.cell,
                 "plate": False,
-                "color": ink,
+                "color": title_ink,
             })
 
         for r in range(self.rows):
