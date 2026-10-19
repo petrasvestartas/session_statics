@@ -27,7 +27,7 @@ from session_statics import StaticsSession
 session = StaticsSession("session_statics", "my scene")
 session.add_matrix(U, "U = diag(u)")                 # BRG navy at the minimum, BRG pink at the maximum, white values
 session.add_matrix(C, "C", cell=50.0, max_color=my_color)  # any MatrixPlot option: origin, cell, colours, text
-session.dump("data/output")                           # view_session_statics.pb + .yaml
+session.pb_dump("data/output/view_session_statics.pb")  # and view_session_statics.yaml beside it
 ```
 
 ## Examples

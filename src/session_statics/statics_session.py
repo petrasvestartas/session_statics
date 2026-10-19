@@ -38,19 +38,17 @@ class StaticsSession(Session):
         self.next_x = max(self.next_x, plot.origin[0] + (plot.cols + self.gap) * plot.cell)
         return plot
 
-    def dump(self, directory: str | Path) -> Path:
-        """Write view_<name>.pb and its manifest view_<name>.yaml into directory; returns the .pb."""
-        directory = Path(directory)
-        directory.mkdir(parents=True, exist_ok=True)
-        geometry = directory / f"view_{self.name}.pb"
-        self.pb_dump(geometry)
+    def pb_dump(self, filename: str | Path) -> None:
+        """Write the session to filename and its viewer manifest beside it, the same name with .yaml."""
+        filename = Path(filename)
+        filename.parent.mkdir(parents=True, exist_ok=True)
+        super().pb_dump(filename)
         manifest = {
             "name": self.title,
             "live": self.live,
             "view": self.view,
             "grid": self.grid,
-            "items": [{"file": f"pb/view_{self.name}.pb", "name": self.title, "at": [0, 0, 0]}],
+            "items": [{"file": f"pb/{filename.name}", "name": self.title, "at": [0, 0, 0]}],
             "texts": self.texts,
         }
-        (directory / f"view_{self.name}.yaml").write_text(json.dumps(manifest, indent=2))
-        return geometry
+        filename.with_suffix(".yaml").write_text(json.dumps(manifest, indent=2))
