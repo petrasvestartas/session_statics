@@ -24,11 +24,12 @@ in the [compas_fd note](https://github.com/BRG-research/mcp-server-brg/blob/main
 | --- | --- |
 | `a1_vectors_and_matrices.py` | A.1 How the paper writes vectors and matrices (section 1.4) |
 
-Run one and publish its scene to the viewer (`bash/publish-scene.sh` is in `wood_research`):
+Run one and publish its scene to the viewer under its own name, `session_statics`, apart from the
+live scene (`bash/view_put.sh` is in the `session` monorepo):
 
 ```bash
 .venv/bin/python examples/compas_fd/a1_vectors_and_matrices.py
-../../bash/publish-scene.sh data/output/a1_vectors_and_matrices.pb
+../bash/view_put.sh data/output/a1_vectors_and_matrices.pb session_statics
 ```
 
-View: <https://petrasvestartas.github.io/session/>
+View: <https://petrasvestartas.github.io/session/?scene=view_session_statics.yaml>

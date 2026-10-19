@@ -1,12 +1,3 @@
-"""Force density method, step A.1: how the paper writes vectors and matrices (Schek 1974, section 1.4).
-
-A vector is a lower-case letter, the diagonal matrix built from it the same capital letter
-(U = diag(u)), a general matrix a capital letter, C^t its transpose. In NumPy: a 1-D array,
-np.diag(u), C.T and @. Every matrix is printed the way the paper prints figures 2 and 4, a dot
-for a zero, and drawn as a grid on the floor: a point at every entry, a bar of the entry's
-height on every non-zero one, blue up for positive and red down for negative.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -109,8 +100,8 @@ cd wood_research/session/session_statics
 uv venv && uv pip install -e .
 
 |||||||| RUN && CLOUDFLARE ||||||||
-.venv/bin/python examples/compas_fd/a1_vectors_and_matrices.py && ../../bash/publish-scene.sh data/output/a1_vectors_and_matrices.pb
+.venv/bin/python examples/compas_fd/a1_vectors_and_matrices.py && ../bash/view_put.sh data/output/a1_vectors_and_matrices.pb session_statics
 
 |||||||| VIEW ||||||||
-https://petrasvestartas.github.io/session/
+https://petrasvestartas.github.io/session/?scene=view_session_statics.yaml
 """
