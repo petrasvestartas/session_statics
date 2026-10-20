@@ -3,56 +3,98 @@
 from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 from session_py import Matrix, Session, Xform
 
-# A2
+FloatArray = NDArray[np.float64]
 
-branches = [
+# A2 - Topology: a Python list of node-label pairs
+
+branches: list[tuple[int, int]] = [
     (1,6), (2,7), (3,8), (4,9), # 1-4 one branch from each free corner to its anchor
-    (1,4), (1,2), (2,3), (3,4), # the rotated square rint
+    (1,4), (1,2), (2,3), (3,4), # the rotated square ring
     (4,5), (1,5), (2,5), (3,5), # 9-12 connection to the center
 ]
 
-n = 5 # free nodes 1..5
-n_f =  4 # fixed nodes 6..9
-m = len(branches) # branches 1..12
+n: int = 5 # number of free nodes: labels 1..5
+n_f: int = 4 # number of fixed nodes: labels 6..9
+m: int = len(branches) # number of branches: 12
 
 # A3
-C_s = np.zeros((m, n + n_f)) # Number of columns are branches and rows are nodes
+C_s: FloatArray = np.zeros((m, n + n_f)) # shape (12, 9): rows are branches, columns are nodes
 for j, (i, k) in enumerate(branches):
     C_s[j, i - 1] = 1.0 # edge starting node
     C_s[j, k - 1] = -1.0 # edge ending node
 
-C = C_s[:, :n] # (m, n) free column
-C_f = C_s[:, n:] # (m, n_f) fixed column
+C: FloatArray = C_s[:, :n] # shape (12, 5): free-node columns
+C_f: FloatArray = C_s[:, n:] # shape (12, 4): fixed-node columns
 
 print(C_s)
 print(C)
 print(C_f)
 
+# B1 - Chosen support coordinates (metres) and free-node loads (kN).
+# Each coordinate/load variable below is a 1-D array, not one number.
+# Fixed arrays: [node 6, node 7, node 8, node 9], shape (4,).
+# Load arrays: [node 1, node 2, node 3, node 4, node 5], shape (5,).
+
+x_f: FloatArray = np.array([-2.0, 0.0, 2.0, 0.0]) # anchors 6, 7, 8, 9
+y_f: FloatArray = np.array([0.0, 2.0, 0.0, -2.0])
+z_f: FloatArray = np.array([0.0, 1.0, 0.0, 1.0]) # two anchors lifted by 1 m
+p_x: FloatArray = np.zeros(n)
+p_y: FloatArray = np.zeros(n)
+p_z: FloatArray = np.full(n, -0.5) # 0.5 kN downward at every free node
+
+# B2 Coordinate differences and lengths
+
+def coordinate_differences(
+    C: FloatArray,
+    x: FloatArray,
+    y: FloatArray,
+    z: FloatArray,
+    C_f: FloatArray,
+    x_f: FloatArray,
+    y_f: FloatArray,
+    z_f: FloatArray,
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+    """Take coordinate arrays; return branch differences and lengths.
+
+    C: (m, n), C_f: (m, n_f).
+    x, y, z: (n,) arrays, one coordinate per free node; the solve computes them later.
+    x_f, y_f, z_f: (n_f,) arrays, one coordinate per fixed node, already given.
+    u, v, w, l: (m,) arrays, one value per branch.
+    x[0] is one scalar coordinate of node 1; x_f[0] is one of node 6.
+    """
+    # (12, 5) @ (5,) -> (12,); (12, 4) @ (4,) -> (12,).
+    # Add the two 12-entry results, branch by branch.
+    u: FloatArray = C @ x + C_f @ x_f
+    v: FloatArray = C @ y + C_f @ y_f
+    w: FloatArray = C @ z + C_f @ z_f
+    l: FloatArray = np.sqrt(u**2 + v**2 + w**2)
+    return u, v, w, l
 
 
-# scene: the six side by side, one cell apart; the viewer draws every Matrix itself
+# Scene positions are scalars; they are unrelated to the coordinate arrays.
 session = Session("session_statics")
-x = 0.0
+scene_x: float = 0.0
 for name, values in [("C_s", C_s), ("C", C), ("C_f", C_f)]:
     matrix = Matrix.from_rows(np.atleast_2d(values).tolist())
     matrix.name = name
     session.add_matrix(matrix)
-    session.set_xform(matrix.guid, Xform.translation(x, 0.0, 0.0))
-    x += matrix.cols + 1.0
+    session.set_xform(matrix.guid, Xform.translation(scene_x, 0.0, 0.0))
+    scene_x += matrix.cols + 1.0
 output = Path(__file__).resolve().parents[2] / "data" / "output"
 output.mkdir(parents=True, exist_ok=True)
 session.pb_dump(output / "view_session_statics.pb")
 
 """
 |||||||| DESCRIPTION ||||||||
-Step A.1 of the force density method (Schek 1974, section 1.4; compas_fd note, Part A): the
-notation alone. A vector u, its diagonal matrix U = diag(u), a branch-node style matrix C and its
-transpose C^t, and the products U @ u and C @ u, added to a kernel
-Session as Matrix objects, one cell apart. The viewer draws each with one shader instance from the
-Matrix's own defaults: cells from BRG navy at the smallest entry to BRG pink at the largest, grey for
-zero, black edges, every value in white at the centre of its cell, the name above as the title.
+Steps A.1–B.2 of the force density method (Schek 1974).
+branches is a list of node-label pairs; C_s, C and C_f are two-dimensional NumPy arrays.
+Fixed coordinate arrays have four entries; load arrays have five entries.
+coordinate_differences takes the five-entry free-coordinate arrays x, y, z and returns
+four twelve-entry branch arrays. It is defined here but is not called until free
+coordinates are available. The scene contains the three connectivity matrices.
 
 |||||||| DIRECTORY ||||||||
 cd session/session_statics
