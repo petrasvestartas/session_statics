@@ -153,7 +153,7 @@ wheels = [
 
 [[package]]
 name = "session-py"
-version = "0.254.0"
+version = "0.255.0"
 source = { editable = "../session_py" }
 dependencies = [
     { name = "numpy" },
