@@ -29,6 +29,7 @@ in the [compas_fd note](https://github.com/BRG-research/mcp-server-brg/blob/main
 | File | Step |
 | --- | --- |
 | `a1_vectors_and_matrices.py` | A.1–A.3: connectivity and its free/fixed column blocks |
+| `b1_force_density.py` | A–G: complete linear/constrained application and 22 viewer cases |
 | `linear_force_density.py` | B–D: solve the linear force density method using kernel Matrix operations |
 
 Run one and publish its scene to the viewer under its own name, `session_statics`, apart from the
@@ -41,6 +42,39 @@ bash/publish.sh session_statics
 ```
 
 View: <https://petrasvestartas.github.io/session/?scene=view_session_statics.yaml>
+
+## Complete tutorial example
+
+```bash
+uv sync --frozen
+.venv/bin/python examples/compas_fd/b1_force_density.py
+bash/publish.sh session_statics
+```
+
+The second example continues the first through the linear solve, support/force-density
+changes, the unloaded weighted-length minimum, prescribed branch lengths and forces,
+and finite-stiffness unstrained lengths. It then computes all radial-net and 112-bar
+grid-shell cases from parts G.1–G.5 of the linked tutorial.
+
+The viewer shows 22 named groups in a five-column gallery. Blue networks meet their
+conditions; orange networks are stopped iterations whose targets were not met
+(figures 9.1 and 9.3). Red points mark supports. Every panel has a summary matrix:
+iterations, largest condition error, largest free-node equilibrium error. Geometry
+is uniformly scaled and translated for the gallery; calculations and the JSON
+report retain metres, kN and kN/m. Use the scene tree to inspect groups and branches,
+and `View Isometric` to see the height differences.
+
+`data/output/force_density_results.json` contains every case's coordinates, q,
+lengths, forces, reactions, conditions and convergence status. The example checks
+member-force equilibrium and global reaction/load balance independently. The
+67-node topology and support locations follow the tutorial's reconstruction;
+its chosen supports and loads are not original measured Schek data.
+
+`constrained_force_density` iterates on positive q, solves equilibrium at every
+trial, uses analytic derivatives checked by finite differences, and accepts only
+steps that reduce the condition error. `Condition` supports `length`, `force`, and
+`unstrained_length`; branch indices are zero-based. Nonconvergence is returned
+explicitly, and does not prove that a target is geometrically impossible.
 
 ## Linear force density solver
 
