@@ -57,7 +57,7 @@ def coordinate_differences(
     y_f: FloatArray,
     z_f: FloatArray,
 ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
-    """Take coordinate arrays; return branch differences and lengths.
+    """Given node positions, measure branches; this does not solve for the positions.
 
     C: (m, n), C_f: (m, n_f).
     x, y, z: (n,) arrays, one coordinate per free node; the solve computes them later.
