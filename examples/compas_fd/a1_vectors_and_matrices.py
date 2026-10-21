@@ -77,7 +77,23 @@ def coordinate_differences(
     return u, v, w, l
 
 # B3 Equilibrium with the unknown forces, equation.
+def equilibrium(
+        C: FloatMatrix,
+        C_f: FloatMatrix,
+        p_x: FloatVector,
+        p_y: FloatVector,
+        p_z: FloatVector,
+        u: FloatVector,
+        v: FloatVector,
+        w: FloatVector) -> tuple[FloatMatrix, FloatMatrix, FloatMatrix]:
+    """Eq. (2): C^t U L^-1 s - p for the three axes.  All zeros means the net is in equilibrium."""
+    u, v, w, l = coordinate_differences(C, x, y, z, C_f, x_f, y_f, z_f)
+    L_inv = np.diag(1.0 / l)
+    return (C.T @ np.diag(u) @ L_inv @ s-p_x,
+            C.T @ np.diag(v) @ L_inv @ s-p_y,
+            C.T @ np.diag(w) @ L_inv @ s-p_z)
 
+# https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/compas_fd.md
 
 # Scene positions are scalars; they are unrelated to the coordinate arrays.
 session = Session("session_statics")
