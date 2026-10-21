@@ -439,3 +439,25 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""
+|||||||| DESCRIPTION ||||||||
+Steps A.1–B.2 of the force density method (Schek 1974).
+branches is a list of node-label pairs; C_s, C and C_f are two-dimensional NumPy arrays.
+Fixed coordinate arrays have four entries; load arrays have five entries.
+coordinate_differences takes the five-entry free-coordinate arrays x, y, z and returns
+four twelve-entry branch arrays. It is defined here but is not called until free
+coordinates are available. The scene contains the three connectivity matrices.
+
+|||||||| DIRECTORY ||||||||
+cd session/session_statics
+
+|||||||| SETUP ||||||||
+uv venv && uv pip install -e .
+
+|||||||| RUN && CLOUDFLARE ||||||||
+.venv/bin/python examples/compas_fd/b1_force_density.py && bash/publish.sh session_statics
+
+|||||||| VIEW ||||||||
+https://petrasvestartas.github.io/session/?scene=view_session_statics.yaml&cmd=View%20Top;View%20Orthographic;Fit
+"""

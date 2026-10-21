@@ -31,9 +31,9 @@ for j, (i, k) in enumerate(branches):
 C: FloatMatrix = C_s[:, :n] # shape (12, 5): free-node columns
 C_f: FloatMatrix = C_s[:, n:] # shape (12, 4): fixed-node columns
 
-print(C_s)
-print(C)
-print(C_f)
+# print(C_s)
+# print(C)
+# print(C_f)
 
 # B1 - Chosen support coordinates (metres) and free-node loads (kN).
 # Each coordinate/load variable below is a 1-D array, not one number.
@@ -77,21 +77,33 @@ def coordinate_differences(
     return u, v, w, l
 
 # B3 Equilibrium with the unknown forces, equation.
-def equilibrium(
+def equilibrium_error(
         C: FloatMatrix,
+        x: FloatVector,
+        y: FloatVector,
+        z: FloatVector,
+        s: FloatVector,
         C_f: FloatMatrix,
-        p_x: FloatVector,
-        p_y: FloatVector,
-        p_z: FloatVector,
-        u: FloatVector,
-        v: FloatVector,
-        w: FloatVector) -> tuple[FloatMatrix, FloatMatrix, FloatMatrix]:
+        x_f: FloatVector,
+        y_f: FloatVector,
+        z_f: FloatVector) -> tuple[FloatVector, FloatVector, FloatVector]:
     """Eq. (2): C^t U L^-1 s - p for the three axes.  All zeros means the net is in equilibrium."""
+
     u, v, w, l = coordinate_differences(C, x, y, z, C_f, x_f, y_f, z_f)
     L_inv = np.diag(1.0 / l)
+
     return (C.T @ np.diag(u) @ L_inv @ s-p_x,
             C.T @ np.diag(v) @ L_inv @ s-p_y,
             C.T @ np.diag(w) @ L_inv @ s-p_z)
+
+x_guess = np.zeros(n, dtype=np.float64) # a flat guess the free nodes, total number of nodes are  6
+y_guess = np.zeros(n, dtype=np.float64)
+z_guess = np.zeros(n, dtype=np.float64)
+s_guess = np.ones(m, dtype=np.float64) # 1 kN in every branch
+ex, ey, ez = equilibrium_error(C, x_guess, y_guess, z_guess, s_guess, C_f, x_f, y_f, z_f)
+
+print(ex)
+
 
 # https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/compas_fd.md
 
