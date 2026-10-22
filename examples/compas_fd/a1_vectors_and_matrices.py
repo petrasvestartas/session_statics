@@ -181,12 +181,52 @@ session.pb_dump(output / "view_session_statics.pb")
 """
 |||||||| DESCRIPTION ||||||||
 Steps A.1–C.4 of the force density method (Schek 1974).
-branches is a list of node-label pairs; C_s, C and C_f are two-dimensional NumPy arrays.
-Fixed coordinate arrays have four entries; load arrays have five entries.
-coordinate_differences takes the five-entry free-coordinate arrays x, y, z and returns
-four twelve-entry branch arrays. D and D_f form the linear system, solved directly
-for exact free-node equilibrium positions. The scene contains the 3D cable net
-and five matrices (C_s, C, C_f, D, D_f).
+Follows Schek's original workflow using the 12-branch, 5-free-node, 4-anchor net:
+
+Schek Fig. 2 — Network Graph and Branch-Node Matrix C_s = [C  C_f]:
+Image: https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/images/schek_fig2.png
+- 5 Free nodes (1..5), 4 Fixed anchors (6..9), 12 Branches (1..12)
+- Branches 1-4: Corner anchors (1-6, 2-7, 3-8, 4-9)
+- Branches 5-8: Rotated square ring (1-4, 1-2, 2-3, 3-4)
+- Branches 9-12: Spokes to central node 5 (4-5, 1-5, 2-5, 3-5)
+- Branch-node incidence matrix C_s has shape (12, 9) split into C (12, 5) and C_f (12, 4).
+
+Schek Fig. 3 — Diagram of Form Finding (Das Schema der Formfindung):
+Image: https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/images/schek_fig3.png
+                 [ Start Form Finding ]
+                           │
+                           ▼
+[ Branch list i(j), k(j) ] ──> [ 1. Form branch-node matrix C_s = [C  C_f] ]
+                                                  │
+                                                  ▼
+[ Force densities q ] ───────> [ 2. Form D = C^t Q C  and  D_f = C^t Q C_f ]
+                               [    Prepare RHS: p - D_f x_f               ]
+                                                  │
+                                                  ▼
+[ Fixed points x_f, y_f, z_f ]> [ 3. Solve D x = p_x - D_f x_f (and y, z)   ]
+[ Loads p_x, p_y, p_z ] ─────> [    Lengths l = |C x + C_f x_f|            ]
+                               [    Forces  s = L q                        ]
+                                                  │
+                                                  ▼
+                               [ 4. Output equilibrium shape              ]
+                               [    (Plotter, display, analyse)            ]
+                                                  │
+                        ┌─────────────────────────┴────────────────────────┐
+                        │                                                  │
+                        ▼                                                  ▼
+           [ Any changes needed? ]                               [ Equilibrium Shape ]
+           ├── Change loads or supports? ──> (Loop back to Step 3: only RHS changes)
+           ├── Change force densities q? ──> (Loop back to Step 2: D is rebuilt)
+           └── Change network topology?  ──> (Loop back to Step 1: C_s is rebuilt)
+
+Schek Fig. 4 — Structure of Matrix D = C^t Q C (5x5):
+Image: https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/images/schek_fig4.png
+- Diagonal entry D[i, i]: sum of force densities q of all branches attached to node i.
+- Off-diagonal entry D[i, k]: -q of the branch connecting nodes i and k (or 0 if unlinked).
+- Matrix D_f (5x4): coupling between free nodes and fixed anchors.
+
+The 3D scene visualises the solved equilibrium cable net together with the five
+matrices (C_s, C, C_f, D, D_f) in row layout.
 
 |||||||| DIRECTORY ||||||||
 cd session/session_statics
