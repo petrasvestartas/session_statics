@@ -4,11 +4,15 @@ from pathlib import Path
 from typing import TypeAlias
 
 import numpy as np
-from session_py import Matrix, Session, Xform
+from session_py import Line, Matrix, Session, Xform
 
 # Both are NumPy arrays: a matrix has two dimensions; a vector has one.
 FloatMatrix: TypeAlias = np.ndarray[tuple[int, int], np.dtype[np.float64]]
 FloatVector: TypeAlias = np.ndarray[tuple[int], np.dtype[np.float64]]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# A - input
+# ═══════════════════════════════════════════════════════════════════════════
 
 # A2 - Topology: a Python list of node-label pairs
 
@@ -44,13 +48,19 @@ x_f: FloatVector = np.array([-2.0, 0.0, 2.0, 0.0], dtype=np.float64) # anchors 6
 y_f: FloatVector = np.array([0.0, 2.0, 0.0, -2.0], dtype=np.float64)
 z_f: FloatVector = np.array([0.0, 1.0, 0.0, 1.0], dtype=np.float64) # two anchors lifted by 1 m
 
-x = np.array([-1.0, 0.0, 1.0, 0.0, 0.0])    # a flat guess for the free nodes
-y = np.array([0.0, -1.0, 0.0, 1.0, 0.0])
-z = np.zeros(n)
+x_guess = np.array([-1.0, 0.0, 1.0, 0.0, 0.0])    # a flat guess for the free nodes
+y_guess = np.array([0.0, -1.0, 0.0, 1.0, 0.0])
+z_guess = np.zeros(n)
 p_x: FloatVector = np.zeros(n, dtype=np.float64)
 p_y: FloatVector = np.zeros(n, dtype=np.float64)
 p_z: FloatVector = np.full(n, -0.5, dtype=np.float64) # 0.5 kN downward at every free node
-s = np.ones(m)                              # 1 kN in every branch
+s_guess = np.ones(m)                              # 1 kN in every branch
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# B - Coordinate differences and Equilibrium Error
+# ═══════════════════════════════════════════════════════════════════════════
 
 # B2 Coordinate differences and lengths
 
@@ -107,34 +117,76 @@ def equilibrium_error(
             C.T @ np.diag(v) @ L_inv @ s-p_y,
             C.T @ np.diag(w) @ L_inv @ s-p_z)
 
-ex, ey, ez = equilibrium_error(C, x, y, z, s, C_f, x_f, y_f, z_f)
+ex, ey, ez = equilibrium_error(C, x_guess, y_guess, z_guess, s_guess, C_f, x_f, y_f, z_f)
+print("Flat guess equilibrium error (z):", ez)
 
-print(ex)
+# ═══════════════════════════════════════════════════════════════════════════
+# C - The force density trick - a linear system
+# ═══════════════════════════════════════════════════════════════════════════
 
+# C1 Prescribe force densities (kN/m): the design input
+q: FloatVector = np.array([2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float64)
+Q: FloatMatrix = np.diag(q) # (12, 12) diagonal matrix
 
-# https://github.com/BRG-research/mcp-server-brg/blob/main/knowledge/04_form_finding/compas_fd.md
+# C2 Assemble system matrices D (5x5) and D_f (5x4)
+D: FloatMatrix = C.T @ Q @ C      # (n, n) free-to-free
+D_f: FloatMatrix = C.T @ Q @ C_f  # (n, n_f) free-to-fixed
+
+# Right-hand sides: external loads minus anchor pulling forces
+rhs_x: FloatVector = p_x - D_f @ x_f
+rhs_y: FloatVector = p_y - D_f @ y_f
+rhs_z: FloatVector = p_z - D_f @ z_f
+
+# C3 Solve for the unknown free-node coordinates in one direct step
+x: FloatVector = np.linalg.solve(D, rhs_x)
+y: FloatVector = np.linalg.solve(D, rhs_y)
+z: FloatVector = np.linalg.solve(D, rhs_z)
+
+# C4 Geometry post-processing and exact equilibrium verification
+u, v, w, l = coordinate_differences(C, x, y, z, C_f, x_f, y_f, z_f)
+s: FloatVector = l * q # Member axial forces [kN]
+
+err_x, err_y, err_z = equilibrium_error(C, x, y, z, s, C_f, x_f, y_f, z_f)
+max_err = max(np.abs(err_x).max(), np.abs(err_y).max(), np.abs(err_z).max())
+print(f"Solved equilibrium max residual error: {max_err:.2e} kN")
+assert max_err < 1e-12, "Equilibrium not satisfied!"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Session 3D Viewer Scene
+# ═══════════════════════════════════════════════════════════════════════════
 
 # Scene positions are scalars; they are unrelated to the coordinate arrays.
 session = Session("session_statics")
-scene_x: float = 0.0
-for name, values in [("C_s", C_s), ("C", C), ("C_f", C_f)]:
+
+# 1. Add 3D equilibrium network cables
+xyz_all = np.vstack([np.c_[x, y, z], np.c_[x_f, y_f, z_f]])
+for i, k in branches:
+    p1 = xyz_all[i - 1]
+    p2 = xyz_all[k - 1]
+    session.add_line(Line(*p1, *p2))
+
+# 2. Add matrices in a clean row next to the 3D net
+scene_x: float = 6.0
+for name, values in [("C_s", C_s), ("C", C), ("C_f", C_f), ("D", D), ("D_f", D_f)]:
     matrix = Matrix.from_rows(np.atleast_2d(values).tolist())
     matrix.name = name
     session.add_matrix(matrix)
     session.set_xform(matrix.guid, Xform.translation(scene_x, 0.0, 0.0))
     scene_x += matrix.cols + 1.0
+
 output = Path(__file__).resolve().parents[2] / "data" / "output"
 output.mkdir(parents=True, exist_ok=True)
 session.pb_dump(output / "view_session_statics.pb")
 
 """
 |||||||| DESCRIPTION ||||||||
-Steps A.1–B.2 of the force density method (Schek 1974).
+Steps A.1–C.4 of the force density method (Schek 1974).
 branches is a list of node-label pairs; C_s, C and C_f are two-dimensional NumPy arrays.
 Fixed coordinate arrays have four entries; load arrays have five entries.
 coordinate_differences takes the five-entry free-coordinate arrays x, y, z and returns
-four twelve-entry branch arrays. It is defined here but is not called until free
-coordinates are available. The scene contains the three connectivity matrices.
+four twelve-entry branch arrays. D and D_f form the linear system, solved directly
+for exact free-node equilibrium positions. The scene contains the 3D cable net
+and five matrices (C_s, C, C_f, D, D_f).
 
 |||||||| DIRECTORY ||||||||
 cd session/session_statics
