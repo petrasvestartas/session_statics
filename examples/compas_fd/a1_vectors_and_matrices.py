@@ -43,9 +43,14 @@ C_f: FloatMatrix = C_s[:, n:] # shape (12, 4): fixed-node columns
 x_f: FloatVector = np.array([-2.0, 0.0, 2.0, 0.0], dtype=np.float64) # anchors 6, 7, 8, 9
 y_f: FloatVector = np.array([0.0, 2.0, 0.0, -2.0], dtype=np.float64)
 z_f: FloatVector = np.array([0.0, 1.0, 0.0, 1.0], dtype=np.float64) # two anchors lifted by 1 m
+
+x = np.array([-1.0, 0.0, 1.0, 0.0, 0.0])    # a flat guess for the free nodes
+y = np.array([0.0, -1.0, 0.0, 1.0, 0.0])
+z = np.zeros(n)
 p_x: FloatVector = np.zeros(n, dtype=np.float64)
 p_y: FloatVector = np.zeros(n, dtype=np.float64)
 p_z: FloatVector = np.full(n, -0.5, dtype=np.float64) # 0.5 kN downward at every free node
+s = np.ones(m)                              # 1 kN in every branch
 
 # B2 Coordinate differences and lengths
 
@@ -82,25 +87,27 @@ def equilibrium_error(
         x: FloatVector,
         y: FloatVector,
         z: FloatVector,
-        s: FloatVector,
+        s: FloatVector, # Force per every cable in kN
         C_f: FloatMatrix,
         x_f: FloatVector,
         y_f: FloatVector,
         z_f: FloatVector) -> tuple[FloatVector, FloatVector, FloatVector]:
     """Eq. (2): C^t U L^-1 s - p for the three axes.  All zeros means the net is in equilibrium."""
 
+    # Get Cable lengths
     u, v, w, l = coordinate_differences(C, x, y, z, C_f, x_f, y_f, z_f)
-    L_inv = np.diag(1.0 / l)
 
+    L_inv = np.diag(1.0 / l) # (12, 12) diagonal matrix holding 1/L, following notation q = F/L
+
+    # Step 1: L_inv @ s - force densities per cable
+    # Step 2: np.diag(u) @ L_inv @ s - projection of the force density into the x-axis
+    # Step 3: C.T @ np.diag(u) @ L_inv - the connectivity matrix of free nodes, allows to sum the forces per node
+    # Step 4: -p_x - the original loading of free nodes must sum to zero as internal forces deform the cable net
     return (C.T @ np.diag(u) @ L_inv @ s-p_x,
             C.T @ np.diag(v) @ L_inv @ s-p_y,
             C.T @ np.diag(w) @ L_inv @ s-p_z)
 
-x_guess = np.zeros(n, dtype=np.float64) # a flat guess the free nodes, total number of nodes are  6
-y_guess = np.zeros(n, dtype=np.float64)
-z_guess = np.zeros(n, dtype=np.float64)
-s_guess = np.ones(m, dtype=np.float64) # 1 kN in every branch
-ex, ey, ez = equilibrium_error(C, x_guess, y_guess, z_guess, s_guess, C_f, x_f, y_f, z_f)
+ex, ey, ez = equilibrium_error(C, x, y, z, s, C_f, x_f, y_f, z_f)
 
 print(ex)
 
